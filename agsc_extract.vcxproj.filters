@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="agsc_index.c" />
+    <ClCompile Include="g721.c" />
+    <ClCompile Include="logging.c" />
+    <ClCompile Include="main.c" />
+    <ClCompile Include="pak.c" />
+    <ClCompile Include="voiceplayer.c" />
+    <ClCompile Include="wave_file.c" />
+    <ClCompile Include="winsupport.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="g721.h" />
+    <ClInclude Include="logging.h" />
+    <ClInclude Include="pak.h" />
+    <ClInclude Include="platform.h" />
+    <ClInclude Include="rwkaudio.h" />
+    <ClInclude Include="winsupport.h" />
+    <ClInclude Include="dirent.h" />
+  </ItemGroup>
+</Project>
