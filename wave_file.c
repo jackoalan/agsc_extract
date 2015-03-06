@@ -124,7 +124,7 @@ void rwkaudio_rendervoice(unsigned channel_count, unsigned sample_rate, rwkaudio
                 0x00020000,
                 0,
                 voiceplayer->agsc.loop_start_sample,
-                voiceplayer->agsc.loop_end_sample,
+                voiceplayer->agsc.loop_end_sample - 1,
                 0,
                 0
             }
