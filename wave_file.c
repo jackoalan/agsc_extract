@@ -175,7 +175,7 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
             continue;
         
         char shared_path[256];
-        snprintf(shared_path, 256, "AUDIO/%s/", entry->name);
+        _snprintf(shared_path, 256, "AUDIO/%s/", entry->name);
         mkdir(shared_path, 0755);
         
         rwkaudio_agsc_context agsc;
@@ -188,7 +188,7 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
             
             char out_path[256];
             strlcpy(out_path, shared_path, 256);
-            snprintf(out_path + strlen(out_path), 256, "%s_%u_%04X%s.wav", entry->name, k, sc->myId, sc->loopLengthSamples?"L":"");
+            _snprintf(out_path + strlen(out_path), 256, "%s_%u_%04X%s.wav", entry->name, k, sc->myId, sc->loopLengthSamples?"L":"");
             
             vp.agsc.clip_id = sc->myId;
             vp.agsc.an_agsc = &agsc;
