@@ -176,13 +176,13 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
             continue;
         if (!strcmp(entry->name, "test_AGSC"))
             continue;
-        
-        char shared_path[256];
-        snprintf(shared_path, 256, "AUDIO/%s/", entry->name);
-        mkdir(shared_path, 0755);
-        
+
         rwkaudio_agsc_context agsc;
         rwkaudio_agscindex_load(&agsc, entry);
+        
+        char shared_path[256];
+        snprintf(shared_path, 256, "AUDIO/%s/", agsc.name);
+        mkdir(shared_path, 0755);
         
         printf("Extracting '%s' -- %u SDIR entries\n", agsc.name, agsc.subclip_count);
         
