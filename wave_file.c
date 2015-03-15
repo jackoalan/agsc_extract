@@ -164,8 +164,6 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
             break;
         }
     }
-    if (!lookup_table_buf)
-        return;
     
     rwkaudio_voiceplayer_context vp;
     rwkaudio_voiceplayer_new_agsc(&vp, 0);
@@ -186,14 +184,14 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
         rwkaudio_agsc_context agsc;
         rwkaudio_agscindex_load(&agsc, entry);
         
-        printf("Extracting '%s' -- %u SDIR entries\n", entry->name, agsc.subclip_count);
+        printf("Extracting '%s' -- %u SDIR entries\n", agsc.name, agsc.subclip_count);
         
         for (k=0 ; k<agsc.subclip_count ; ++k) {
             struct AGSC_subclip* sc = &agsc.subclip_table[k];
             
             char out_path[256];
             strlcpy(out_path, shared_path, 256);
-            snprintf(out_path + strlen(out_path), 256, "%s_%u_%04X%s.wav", entry->name, k, sc->myId, sc->loopLengthSamples?"L":"");
+            snprintf(out_path + strlen(out_path), 256, "%s_%u_%04X%s.wav", agsc.name, k, sc->myId, sc->loopLengthSamples?"L":"");
             
             vp.agsc.clip_id = sc->myId;
             vp.agsc.an_agsc = &agsc;
@@ -237,6 +235,7 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
     
     rwkaudio_voiceplayer_destroy(&vp);
     
-    free(lookup_table_buf);
+    if (lookup_table_buf)
+        free(lookup_table_buf);
     
 }

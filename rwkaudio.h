@@ -152,6 +152,8 @@ typedef struct {
     
     u8* coefficient_base;
     u8* packet_data;
+
+    const char* name;
     
 } rwkaudio_agsc_context;
 

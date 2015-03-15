@@ -126,6 +126,7 @@ void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* 
 
     if (is_mp2 == 0x1) {
         agsc_cur += 4;
+        new_agsc->name = agsc_cur;
         agsc_cur += strlen((char*)agsc_cur)+1;
         project_count = swap_u16(*(u32*)agsc_cur);
         agsc_cur += 2;
@@ -147,6 +148,7 @@ void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* 
 
     } else {
         agsc_cur += strlen((char*)agsc_cur)+1;
+        new_agsc->name = agsc_cur;
         agsc_cur += strlen((char*)agsc_cur)+1;
         pool_len = swap_u32(*(u32*)agsc_cur);
         agsc_cur += 4;
