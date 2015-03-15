@@ -168,10 +168,14 @@ void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* 
     
     
     /* Build table for table 2 links */
-    u8* table_two_index = project + swap_u32(*(u32*)(project+28));
-    u16 table_two_count = swap_u16(*(u16*)(table_two_index));
-    if (is_mp2 && project_count == 0xffff)
+    u16 table_two_count;
+    u8* table_two_index = NULL;
+    if (is_mp2 && project_count == 0xffff) {
         table_two_count = 0;
+    } else {
+        table_two_index = project + swap_u32(*(u32*)(project + 28));
+        table_two_count = swap_u16(*(u16*)(table_two_index));
+    }
     new_agsc->link_count = table_two_count;
     if (table_two_count)
         new_agsc->link_table = malloc(sizeof(struct AGSC_link) * table_two_count);
