@@ -61,6 +61,11 @@ static void audio_upmix_stereo(rwkaudio_voiceplayer_context* ctx,
 /* Signed nibbles come up a lot */
 static const s32 nibble_to_int[16] = {0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1};
 
+static INLINE s16 samp_clamp(s32 val) {
+    if (val < -32768) val = -32768;
+    if (val > 32767) val = 32767;
+    return val;
+}
 
 #define adpcm_decompress_packet(exponent, factor1, factor2, prev, \
 prev_prev, samp_idx, samp_limit, buf_in, buf_out, fill_samp, max_samp, mult) \
@@ -68,7 +73,7 @@ unsigned samp;\
 for (samp=samp_idx ; samp<samp_limit && fill_samp<max_samp ; ++samp) {\
     s32 sample_data = (samp&1)?\
     nibble_to_int[(*(u8*)(buf_in+1+samp/2))&0xf]:\
-    nibble_to_int[(*(u8*)(buf_in+1+samp/2))>>4];\
+    nibble_to_int[((*(u8*)(buf_in+1+samp/2))>>4)&0xf];\
     sample_data *= exponent;\
     sample_data <<= 11;\
     sample_data += 1024;\
@@ -76,7 +81,7 @@ for (samp=samp_idx ; samp<samp_limit && fill_samp<max_samp ; ++samp) {\
     factor1 * prev +\
     factor2 * prev_prev;\
     sample_data >>= 11;\
-    buf_out[fill_samp++] = sample_data * mult;\
+    buf_out[fill_samp++] = samp_clamp(sample_data);\
     prev_prev = prev;\
     prev = sample_data;\
 }
