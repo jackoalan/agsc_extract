@@ -12,6 +12,10 @@
 #include "logging.h"
 #include "platform.h"
 
+#if _WIN32
+#define snprintf _snprintf
+#endif
+
 struct rwkaudio_user_prefs USER_AUDIO_PREFS = {1.0, 1.0};
 
 /* Quick way to make a PCM .wav file of any audio
@@ -152,7 +156,8 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
     unsigned lookup_table_count = 0;
     for (i=0 ; i<audiogrp->entry_count ; ++i) {
         struct pak_entry* entry = &audiogrp->entries[i];
-        if (!strcmp(entry->name, "sound_lookup")) {
+        if (!strcmp(entry->name, "sound_lookup") ||
+            !strcmp(entry->name, "sound_lookup_ATBL")) {
             pak_lookup_get_data(entry, &lookup_table_buf);
             lookup_table_count = swap_u32(*(u32*)lookup_table_buf);
             lookup_table = (u16*)(lookup_table_buf + 4);
@@ -175,7 +180,7 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
             continue;
         
         char shared_path[256];
-        _snprintf(shared_path, 256, "AUDIO/%s/", entry->name);
+        snprintf(shared_path, 256, "AUDIO/%s/", entry->name);
         mkdir(shared_path, 0755);
         
         rwkaudio_agsc_context agsc;
@@ -188,7 +193,7 @@ void rwkaudio_extract_agscs(struct pak_file* audiogrp) {
             
             char out_path[256];
             strlcpy(out_path, shared_path, 256);
-            _snprintf(out_path + strlen(out_path), 256, "%s_%u_%04X%s.wav", entry->name, k, sc->myId, sc->loopLengthSamples?"L":"");
+            snprintf(out_path + strlen(out_path), 256, "%s_%u_%04X%s.wav", entry->name, k, sc->myId, sc->loopLengthSamples?"L":"");
             
             vp.agsc.clip_id = sc->myId;
             vp.agsc.an_agsc = &agsc;

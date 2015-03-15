@@ -100,8 +100,6 @@ static u16 resolve_clip_key_from_t1_key(u16 t1Key, u8* t1, u32 t1Len, u8** t1dat
 
 
 
-
-
 /* Load selected AGSC file from `AudioGrp.pak` */
 void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* agsc_entry) {
     unsigned i;
@@ -114,27 +112,72 @@ void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* 
     pak_lookup_get_data(agsc_entry, &new_agsc->agsc_buf);
     u8* agsc_cur = new_agsc->agsc_buf;
     
-    /* Advance beyond both head names */
-    agsc_cur += strlen((char*)agsc_cur)+1;
-    agsc_cur += strlen((char*)agsc_cur)+1;
-    
-    /* Record length of table one and advance */
-    u32 table_one_len = swap_u32(*(u32*)(agsc_cur));
-    u8* table_one = agsc_cur + 4;
-    agsc_cur += table_one_len + 4;
-    
-    /* Record pointer of table two and its length and advance */
-    u32 table_two_len = swap_u32(*(u32*)(agsc_cur));
-    u8* table_two = agsc_cur + 4;
-    agsc_cur += table_two_len + 4;
+    /* Determine if AGSC is MP1/MP2 */
+    u32 is_mp2 = swap_u32(*(u32*)agsc_cur);
+    u16 project_count = 0; /* MP2 only */
+    u32 pool_len;
+    u8* pool;
+    u32 project_len;
+    u8* project;
+    u32 sample_len;
+    u8* sample;
+    u32 sample_dir_len;
+    u8* sample_dir;
+
+    if (is_mp2 == 0x1) {
+        agsc_cur += 4;
+        agsc_cur += strlen((char*)agsc_cur)+1;
+        project_count = swap_u16(*(u32*)agsc_cur);
+        agsc_cur += 2;
+        pool_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        project_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        sample_dir_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        sample_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        pool = agsc_cur;
+        agsc_cur += pool_len;
+        project = agsc_cur;
+        agsc_cur += project_len;
+        sample_dir = agsc_cur;
+        agsc_cur += sample_dir_len;
+        sample = agsc_cur;
+
+    } else {
+        agsc_cur += strlen((char*)agsc_cur)+1;
+        agsc_cur += strlen((char*)agsc_cur)+1;
+        pool_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        pool = agsc_cur;
+        agsc_cur += pool_len;
+        project_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        project = agsc_cur;
+        agsc_cur += project_len;
+        sample_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        sample = agsc_cur;
+        agsc_cur += sample_len;
+        sample_dir_len = swap_u32(*(u32*)agsc_cur);
+        agsc_cur += 4;
+        sample_dir = agsc_cur;
+        
+    }
     
     
     /* Build table for table 2 links */
-    u8* table_two_index = table_two + swap_u32(*(u32*)(table_two+28));
-    
+    u8* table_two_index = project + swap_u32(*(u32*)(project+28));
     u16 table_two_count = swap_u16(*(u16*)(table_two_index));
+    if (is_mp2 && project_count == 0xffff)
+        table_two_count = 0;
     new_agsc->link_count = table_two_count;
-    new_agsc->link_table = malloc(sizeof(struct AGSC_link) * table_two_count);
+    if (table_two_count)
+        new_agsc->link_table = malloc(sizeof(struct AGSC_link) * table_two_count);
+    else
+        new_agsc->link_table = NULL;
+    
     for(i=0 ; i<table_two_count ; ++i) {
         struct AGSC_t2_index* thisT2I = (struct AGSC_t2_index*)(table_two_index + 4 + 10*i);
         swap_t2_index(thisT2I);
@@ -142,39 +185,35 @@ void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* 
         new_agsc->link_table[i].tbl1Key = thisT2I->table1Key;
         new_agsc->link_table[i].tbl2Key = thisT2I->gameKey;
         new_agsc->link_table[i].clipKey = resolve_clip_key_from_t1_key(thisT2I->table1Key,
-                                                                       table_one, table_one_len,
+                                                                       pool, pool_len,
                                                                        (u8**)&new_agsc->link_table[i].tbl1Data);
     }
     
     
     /* Record frame table pointer and advance (ADPCM DATA STORED HERE!) */
-    u32 frame_table_len = swap_u32(*(u32*)(agsc_cur));
-    void* frame_table = agsc_cur + 4;
-    new_agsc->packet_data = frame_table;
-    agsc_cur += frame_table_len + 4;
+    new_agsc->packet_data = sample;
     
     /* Record subclip table pointer (ADPCM COEFFICIENTS STORED HERE!!) */
-    u8* subclip_table_pointer = agsc_cur + 4;
-    new_agsc->subclip_table = (struct AGSC_subclip*)subclip_table_pointer;
-    new_agsc->coefficient_base = subclip_table_pointer;
+    new_agsc->subclip_table = (struct AGSC_subclip*)sample_dir;
+    new_agsc->coefficient_base = sample_dir;
     
     /* Count subclips */
     u32 subclip_count = 0;
-    u16 testJib = swap_u16(*(u16*)(subclip_table_pointer));
+    u16 testJib = swap_u16(*(u16*)(sample_dir));
     while (testJib != 0xFFFF)
     {
         ++subclip_count;
-        testJib = swap_u16(*(u16*)(subclip_table_pointer+(32*subclip_count)));
+        testJib = swap_u16(*(u16*)(sample_dir+(32*subclip_count)));
     }
     new_agsc->subclip_count = subclip_count;
     
     /* Make clip array and discover table 2 links */
     for(i=0 ; i<subclip_count ; ++i) {
         
-        struct AGSC_subclip* thisClip = (struct AGSC_subclip*)(subclip_table_pointer+(32*i));
+        struct AGSC_subclip* thisClip = (struct AGSC_subclip*)(sample_dir+(32*i));
         swap_subclip(thisClip);
         
-        struct AGSC_subclip_meta* scmeta = (struct AGSC_subclip_meta*)(subclip_table_pointer + thisClip->offsetToCoeffs);
+        struct AGSC_subclip_meta* scmeta = (struct AGSC_subclip_meta*)(sample_dir + thisClip->offsetToCoeffs);
         swap_subclip_meta(scmeta);
         
     }
@@ -183,7 +222,8 @@ void rwkaudio_agscindex_load(rwkaudio_agsc_context* new_agsc, struct pak_entry* 
 
 void rwkaudio_agscindex_unload(rwkaudio_agsc_context* an_agsc) {
     free(an_agsc->agsc_buf);
-    free(an_agsc->link_table);
+    if (an_agsc->link_table)
+        free(an_agsc->link_table);
 }
 
 static void _rwkaudio_agscindex_setclip(rwkaudio_voiceplayer_context* voice) {
